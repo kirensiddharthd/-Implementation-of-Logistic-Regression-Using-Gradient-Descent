@@ -1,5 +1,6 @@
 # Implementation-of-Logistic-Regression-Using-Gradient-Descent
 
+
 ## AIM:
 To write a program to implement the the Logistic Regression Using Gradient Descent.
 
@@ -8,17 +9,13 @@ To write a program to implement the the Logistic Regression Using Gradient Desce
 2. Anaconda – Python 3.7 Installation / Jupyter notebook
 
 ## Algorithm
-1. .Load the placement.csv dataset and select academic features (ssc_p, hsc_p, degree_p, etest_p, mba_p) and the target status.
-
-2. Encode the target variable as Placed = 1 and Not Placed = 0, and standardize the input features.
-
-3. .Initialize the weights and bias, and define the Sigmoid function to calculate placement probability.
-
-4. .Calculate the prediction and gradient, then update the weights using Gradient Descent.
-
-5. .Repeat the gradient calculation and weight update for the specified number of iterations.
-
-6. .Predict the placement status using a 0.5 threshold and calculate the model accuracy.
+1. Start the program.
+2. Data preprocessing:
+3. Cleanse data,handle missing values,encode categorical variables.
+4. Model Training:Fit logistic regression model on preprocessed data.
+5. Model Evaluation:Assess model performance using metrics like accuracyprecisioon,recall.
+6. Prediction: Predict placement status for new student data using trained model.
+7 .End the program.
 
 ## Program:
 ```
@@ -26,77 +23,133 @@ To write a program to implement the the Logistic Regression Using Gradient Desce
 Program to implement the the Logistic Regression Using Gradient Descent.
 Developed by: KIREN SIDDHARTH D
 RegisterNumber: 212224250009
-
+*/
+``
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
-# Load dataset
-data = pd.read_csv(r"C:\Users\k\Downloads\Placement_Data.csv")
+# 1. Load the Dataset
+data = pd.read_csv('Placement_Data.csv')
 
-print("Dataset:")
+print("Original Data:")
+print(data.head())
 
-print(data.iloc[:5, :8].to_string(index=False))
+# 2. Drop Unnecessary Columns
+data = data.drop('sl_no', axis=1)
+data = data.drop('salary', axis=1)
 
+print("\nAfter dropping 'sl_no' and 'salary':")
+print(data.head())
 
-print(data.iloc[:5, [0, 8, 9, 10, 11, 12, 13, 14]].to_string(index=False))
-# Select input features
-X = data[["ssc_p", "hsc_p", "degree_p", "etest_p", "mba_p"]].values
+# 3. Convert Categorical Columns to 'category' Type
+data["gender"] = data["gender"].astype('category')
+data["ssc_b"] = data["ssc_b"].astype('category')
+data["hsc_b"] = data["hsc_b"].astype('category')
+data["degree_t"] = data["degree_t"].astype('category')
+data["workex"] = data["workex"].astype('category')
+data["specialisation"] = data["specialisation"].astype('category')
+data["status"] = data["status"].astype('category')
+data["hsc_s"] = data["hsc_s"].astype('category')
 
-# Convert target into binary values
-y = data["status"].map({"Placed": 1, "Not Placed": 0}).values
+print("\nData types after converting to 'category':")
+print(data.dtypes)
 
-# Standardize features
-X = (X - X.mean(axis=0)) / X.std(axis=0)
+# 4. Convert Categories to Numeric Codes
+data["gender"] = data["gender"].cat.codes
+data["ssc_b"] = data["ssc_b"].cat.codes
+data["hsc_b"] = data["hsc_b"].cat.codes
+data["degree_t"] = data["degree_t"].cat.codes
+data["workex"] = data["workex"].cat.codes
+data["specialisation"] = data["specialisation"].cat.codes
+data["status"] = data["status"].cat.codes
+data["hsc_s"] = data["hsc_s"].cat.codes
 
-# Add bias term
-X = np.c_[np.ones(X.shape[0]), X]
+print("\nData after converting categories to numeric codes:")
+print(data.head())
 
-# Sigmoid function
+# 5. Separate Features (X) and Target (y)
+x = data.iloc[:, :-1].values   # all columns except last
+y = data.iloc[:, -1].values    # last column (status)
+
+print("\nFeature matrix X shape:", x.shape)
+print("Target vector y shape:", y.shape)
+
+# 6. Initialize Parameters
+theta = np.random.randn(x.shape[1])  # Random initial weights for each feature
+
+print("\nInitial theta (weights):")
+print(theta)
+
+# 7. Define Sigmoid Function
 def sigmoid(z):
     return 1 / (1 + np.exp(-z))
 
-# Initialize weights
-weights = np.zeros(X.shape[1])
+# 8. Define Loss Function (optional to print/check)
+def loss(theta, X, y):
+    h = sigmoid(X.dot(theta))
+    return -np.sum(y * np.log(h + 1e-10) + (1 - y) * np.log(1 - h + 1e-10))
+    # Added small 1e-10 to avoid log(0)
 
-# Parameters
-learning_rate = 0.01
-iterations = 1000
+# 9. Implement Gradient Descent
+def gradient_descent(theta, X, y, alpha, num_iterations):
+    m = len(y)
+    for i in range(num_iterations):
+        h = sigmoid(X.dot(theta))
+        gradient = X.T.dot(h - y) / m
+        theta -= alpha * gradient
 
-# Gradient Descent
-for i in range(iterations):
-    z = np.dot(X, weights)
-    y_pred = sigmoid(z)
+        # Optional: print loss every 100 iterations
+        if (i + 1) % 100 == 0:
+            current_loss = loss(theta, X, y)
+            print(f"Iteration {i+1}, Loss: {current_loss:.4f}")
 
-    gradient = np.dot(X.T, (y_pred - y)) / len(y)
+    return theta
 
-    weights = weights - learning_rate * gradient
+# 10. Train the Model
+theta = gradient_descent(theta, x, y, alpha=0.01, num_iterations=1000)
 
-# Predictions
-probabilities = sigmoid(np.dot(X, weights))
-predictions = (probabilities >= 0.5).astype(int)
+print("\nFinal theta (weights) after training:")
+print(theta)
 
-# Accuracy
-accuracy = np.mean(predictions == y)
+# 11. Define Prediction Function
+def predict(theta, X):
+    h = sigmoid(X.dot(theta))
+    y_pred = np.where(h >= 0.5, 1, 0)
+    return y_pred
 
-# Display results
-print("\nFinal Weights:")
-print(weights)
+# 12. Make Predictions and Compute Accuracy
+y_pred = predict(theta, x)
+accuracy = np.mean(y_pred.flatten() == y)
 
-print("\nAccuracy:", accuracy * 100, "%")
+print("\nTraining Accuracy:", accuracy)
+print("Predicted labels (first 20):")
+print(y_pred[:20])
 
+# 13. Predict for New Students
+# NOTE: The order of features must match 'x' columns exactly.
+# Example new students (values must match the encoded format used above)
+xnew1 = np.array([[0, 87, 0, 95, 0, 2, 78, 2, 0, 0, 1, 0]])
+xnew2 = np.array([[0, 0, 0, 0, 0, 2, 8, 2, 0, 0, 1, 0]])
 
+y_prednew1 = predict(theta, xnew1)
+y_prednew2 = predict(theta, xnew2)
 
-*/
+print("\nPrediction for new student 1 (0 = Not Placed, 1 = Placed):", y_prednew1[0])
+print("Prediction for new student 2 (0 = Not Placed, 1 = Placed):", y_prednew2[0])
+
 ```
-
 ## Output:
+<img width="542" height="416" alt="image" src="https://github.com/user-attachments/assets/9c643f9a-51ee-448b-9dee-a81e47352339" />
 
 
-<img width="603" height="289" alt="image" src="https://github.com/user-attachments/assets/23afa6ad-61d6-4b0b-9f34-b8cee60cc57c" />
+<img width="532" height="825" alt="image" src="https://github.com/user-attachments/assets/b9ec1f03-aa87-45b7-9b86-89d831ce0355" />
 
 
 
 
 ## Result:
 Thus the program to implement the the Logistic Regression Using Gradient Descent is written and verified using python programming.
+
+
 
